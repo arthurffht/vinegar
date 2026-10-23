@@ -5,114 +5,143 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
-	"unsafe"
+	"sync/atomic"
+	"time"
 
 	"codeberg.org/puregotk/puregotk/v4/glib"
 	"codeberg.org/puregotk/puregotk/v4/gtk"
 )
 
+// Client is the HTTP client used for all downloads. Connections are
+// bounded by a timeout to avoid hanging forever on a stalled mirror;
+// the body itself may take as long as it needs.
+var Client = &http.Client{
+	Transport: &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ResponseHeaderTimeout: 30 * time.Second,
+		TLSHandshakeTimeout:   15 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConnsPerHost:   8,
+		ForceAttemptHTTP2:     true,
+	},
+}
+
 type progressCounter struct {
-	total   uint64
-	current uint64
-	pbar    *gtk.ProgressBar
+	current atomic.Uint64
 }
 
 func (pc *progressCounter) Write(p []byte) (int, error) {
-	n := len(p)
-	pc.current += uint64(n)
-	return n, nil
+	pc.current.Add(uint64(len(p)))
+	return len(p), nil
 }
 
 // ErrBadStatus is the error returned by Download and Body
 // if the returned HTTP status code is not http.StatusOK.
 var ErrBadStatus = errors.New("bad status")
 
-// DownloadProgress downloads the named url to the named file, using
-// df as the callback for progress. No retry will be checked here.
-func DownloadProgress(url, file string, pbar *gtk.ProgressBar) error {
-	out, err := os.Create(file)
+func get(url string) (*http.Response, error) {
+	resp, err := Client.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer out.Close()
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("%w: %s", ErrBadStatus, resp.Status)
+	}
+	return resp, nil
+}
 
-	resp, err := http.Get(url)
+// DownloadProgress downloads the named url to the named file, reporting
+// the progress to the given progress bar. No retry will be checked here.
+// On failure, the partially downloaded file is removed.
+func DownloadProgress(url, file string, pbar *gtk.ProgressBar) (err error) {
+	resp, err := get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: %s", ErrBadStatus, resp.Status)
-	}
-
-	pc := &progressCounter{
-		total: uint64(resp.ContentLength),
-		pbar:  pbar,
-	}
-
-	var idlecb glib.SourceFunc = func(uintptr) bool {
-		pbar.SetFraction(float64(pc.current) / float64(pc.total))
-		return pc.current != pc.total
-	}
-	glib.TimeoutAdd(16, &idlecb, uintptr(unsafe.Pointer(nil)))
-
-	_, err = io.Copy(out, io.TeeReader(resp.Body, pc))
+	out, err := os.Create(file)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if cerr := out.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			os.Remove(file)
+		}
+	}()
 
-	return nil
+	pc := &progressCounter{}
+	total := resp.ContentLength
+	var done atomic.Bool
+
+	var tcb glib.SourceFunc
+	tcb = func(uintptr) bool {
+		if done.Load() {
+			glib.UnrefCallback(&tcb)
+			return false
+		}
+		if total > 0 {
+			pbar.SetFraction(float64(pc.current.Load()) / float64(total))
+		} else {
+			pbar.Pulse()
+		}
+		return true
+	}
+	glib.TimeoutAdd(16, &tcb, 0)
+	defer done.Store(true)
+
+	_, err = io.Copy(out, io.TeeReader(resp.Body, pc))
+	return err
 }
 
 // Download downloads the named url to the named file. If an error
 // occurs when downloading the file. Download will retry 3 times before
 // returning a final error.
 func Download(url, file string) error {
-	retries := 3
-	for i := 0; i < retries; i++ {
-		err := download(url, file)
+	const retries = 3
+	var err error
+	for i := range retries {
+		err = download(url, file)
 		if err == nil {
-			break
+			return nil
 		}
+		os.Remove(file)
 
-		// additional condition for if the error was a file error or status error
-		if _, ok := err.(*os.PathError); err != nil &&
-			(i == retries-1 || ok || errors.Is(err, ErrBadStatus)) {
-			os.Remove(file) // just remove the thing anyway on failure
+		// File and status errors will not be resolved by retrying.
+		var perr *os.PathError
+		if errors.As(err, &perr) || errors.Is(err, ErrBadStatus) {
 			return err
 		}
 
-		log.Printf("Download %s failed, retrying...", url)
+		slog.Warn("Download failed, retrying...", "url", url, "err", err)
+		time.Sleep(time.Duration(i+1) * time.Second)
 	}
 
-	return nil
+	return err
 }
 
 func download(url, file string) error {
-	out, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
+	resp, err := get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("%w: %s", ErrBadStatus, resp.Status)
-	}
-
-	_, err = io.Copy(out, resp.Body)
+	out, err := os.Create(file)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
 }

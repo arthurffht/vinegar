@@ -30,6 +30,22 @@ const (
 	DesktopsResolution = "1814x1024"
 )
 
+// Repository is a GitHub repository hosting Kombucha Wine builds.
+type Repository struct {
+	Owner string
+	Name  string
+}
+
+func (r Repository) String() string { return r.Owner + "/" + r.Name }
+
+// KombuchaRepos lists the repositories Wine builds are fetched from,
+// in order of preference: the Wayland-only builds made for GNOME,
+// followed by the upstream VinegarHQ builds.
+var KombuchaRepos = []Repository{
+	{"arthurffht", "kombucha"},
+	{"vinegarhq", "kombucha"},
+}
+
 // Order must be the same as the renderer model in the configurator.
 var RendererValues = []string{
 	"D3D11",
@@ -104,7 +120,6 @@ func Default() (cfg *Config) {
 		Studio: Studio{
 			WebView:    WebViewVersion,
 			GameMode:   true,
-			Renderer:   "DXVK",
 			Channel:    "",
 			DiscordRPC: true,
 			FFlags:     make(rbxbin.FFlags),
@@ -117,6 +132,7 @@ func Default() (cfg *Config) {
 	if len(sysinfo.Cards) >= 2 && sysinfo.Cards[0].Embedded {
 		cfg.Studio.ForcedGpu = sysinfo.Cards[1].Addr()
 	}
+	cfg.Studio.Renderer = defaultRenderer(cfg.Studio.ForcedGpu)
 
 	// Default to use the VinegarHQ Kombucha builds to be
 	// downloaded at runtime, on non musl systems.
@@ -126,6 +142,37 @@ func Default() (cfg *Config) {
 	}
 
 	return
+}
+
+// defaultRenderer picks the renderer best suited for the Vulkan support of
+// the GPU that will be used: DXVK requires Vulkan 1.3, while DXVK-Sarek
+// supports older hardware (such as Intel Gen7/8 or NVIDIA Kepler) with
+// Vulkan 1.1. Without usable Vulkan, WineD3D's OpenGL renderer is used.
+func defaultRenderer(gpu string) string {
+	var api uint32
+	for i, c := range sysinfo.Cards {
+		if c.Addr() == gpu || (gpu == "" && i == 0) {
+			api = c.VulkanAPI()
+			break
+		}
+	}
+	if api == 0 {
+		// Card unmatched, such as in sandboxes without PCI access.
+		for _, d := range sysinfo.VulkanDevices() {
+			if !strings.Contains(d.Name, "llvmpipe") {
+				api = max(api, d.APIVersion)
+			}
+		}
+	}
+
+	switch {
+	case api >= sysinfo.MakeVulkanVersion(1, 3):
+		return "DXVK"
+	case api >= sysinfo.MakeVulkanVersion(1, 1):
+		return "DXVK-Sarek"
+	default:
+		return "D3D11"
+	}
 }
 
 func (s *Studio) UnmarshalTOML(data any) error {

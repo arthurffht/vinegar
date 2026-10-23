@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -16,9 +18,14 @@ const drmPath = "/sys/class/drm"
 var embeddedDisplays = []string{"eDP", "LVDS"}
 
 func getCards() (cs []Card) {
-	drmCards, _ := filepath.Glob(path.Join(drmPath, "card[0-9]"))
+	drmCards, _ := filepath.Glob(path.Join(drmPath, "card[0-9]*"))
+	// Connectors such as card1-eDP-1 are matched by the glob as well.
+	drmCards = slices.DeleteFunc(drmCards, func(c string) bool {
+		return strings.Contains(path.Base(c), "-")
+	})
 
-	for i, c := range drmCards {
+	for _, c := range drmCards {
+		i, _ := strconv.Atoi(strings.TrimPrefix(path.Base(c), "card"))
 		dev, _ := filepath.EvalSymlinks(path.Join(c, "device"))
 		driver, _ := filepath.EvalSymlinks(path.Join(dev, "driver"))
 		driver = path.Base(driver)
@@ -37,6 +44,7 @@ func getCards() (cs []Card) {
 		})
 	}
 
+	slices.SortFunc(cs, func(a, b Card) int { return a.Index - b.Index })
 	return
 }
 
@@ -44,7 +52,7 @@ func getCards() (cs []Card) {
 // that are matched with the card path and contain any of embeddedDisplays
 func embedded(cardPath string) (embed bool) {
 	filepath.Walk(drmPath, func(p string, f os.FileInfo, err error) error {
-		if !strings.HasPrefix(p, cardPath) {
+		if !strings.HasPrefix(p, cardPath+"-") {
 			return nil
 		}
 

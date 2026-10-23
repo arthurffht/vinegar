@@ -3,3 +3,8 @@
 *.gresource
 *.so
 *.mo
+/build
+/_build
+/.flatpak-builder
+/repo
+*.flatpak

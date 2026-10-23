@@ -61,30 +61,29 @@ func (b *bootstrapper) execute(args ...string) error {
 
 	b.message(L("Launching Studio"), "cmd", cmd)
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(c)
-	go func() {
-		s := <-c
-		signal.Stop(c)
-
-		slog.Warn("Received signal", "signal", s)
-
-		// Only kill Roblox if it hasn't exited
-		if cmd.ProcessState == nil {
-			slog.Debug("Killing Roblox", "pid", cmd.Process.Pid)
-			cmd.Process.Kill()
-		}
-	}()
-
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	b.count++
+	c := make(chan os.Signal, 1)
+	done := make(chan struct{})
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	defer func() {
-		b.count--
+		signal.Stop(c)
+		close(done)
 	}()
+	go func() {
+		select {
+		case s := <-c:
+			slog.Warn("Received signal", "signal", s)
+			slog.Debug("Killing Roblox", "pid", cmd.Process.Pid)
+			_ = cmd.Process.Kill()
+		case <-done:
+		}
+	}()
+
+	b.count.Add(1)
+	defer b.count.Add(-1)
 
 	gutil.IdleAdd(func() {
 		b.win.SetVisible(false)
@@ -99,8 +98,9 @@ func (b *bootstrapper) execute(args ...string) error {
 	err = cmd.Wait()
 
 	if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == -1 {
-		signal := cmd.ProcessState.Sys().(syscall.WaitStatus).Signal()
-		slog.Warn("Roblox was killed!", "signal", signal)
+		if ws, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+			slog.Warn("Roblox was killed!", "signal", ws.Signal())
+		}
 		return nil
 	}
 

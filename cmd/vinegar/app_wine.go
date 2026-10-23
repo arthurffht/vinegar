@@ -1,18 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"codeberg.org/puregotk/puregotk/v4/adw"
 	"github.com/adrg/xdg"
 	"github.com/google/go-github/v80/github"
 	"github.com/sewnie/wine"
+	"github.com/vinegarhq/vinegar/internal/config"
 	"github.com/vinegarhq/vinegar/internal/dirs"
 	"github.com/vinegarhq/vinegar/internal/gutil"
 	"github.com/vinegarhq/vinegar/internal/logging"
@@ -73,16 +76,7 @@ func (a *app) prepareWine() (bool, error) {
 }
 
 func (a *app) updateWine(needle string) error {
-	client := github.NewClient(nil)
-	ctx := context.Background()
-
-	var release *github.RepositoryRelease
-	var err error
-	if needle == "Latest" {
-		release, _, err = client.Repositories.GetLatestRelease(ctx, "vinegarhq", "kombucha")
-	} else {
-		release, _, err = client.Repositories.GetReleaseByTag(ctx, "vinegarhq", "kombucha", needle)
-	}
+	release, err := kombuchaRelease(needle)
 	if err != nil {
 		return fmt.Errorf("release: %w", err)
 	}
@@ -158,9 +152,47 @@ install:
 	return nil
 }
 
-// Implements io.Writer for reading the log from Wine
+// kombuchaRelease finds the Kombucha release with the given tag, or the
+// latest release if the needle is "Latest". The Wayland-only GNOME builds
+// are preferred, falling back to the upstream builds.
+func kombuchaRelease(needle string) (*github.RepositoryRelease, error) {
+	client := github.NewClient(nil)
+	ctx := context.Background()
+
+	var errs []error
+	for _, repo := range config.KombuchaRepos {
+		var release *github.RepositoryRelease
+		var err error
+		if needle == "Latest" {
+			release, _, err = client.Repositories.GetLatestRelease(ctx, repo.Owner, repo.Name)
+		} else {
+			release, _, err = client.Repositories.GetReleaseByTag(ctx, repo.Owner, repo.Name, needle)
+		}
+		if err == nil {
+			slog.Info("Using Kombucha release", "repo", repo, "tag", release.GetTagName())
+			return release, nil
+		}
+		errs = append(errs, fmt.Errorf("%s: %w", repo, err))
+	}
+	return nil, errors.Join(errs...)
+}
+
+// Implements io.Writer for reading the log from Wine. Wine's output
+// may arrive in arbitrarily sized chunks, so incomplete lines are kept
+// until their terminating newline arrives.
 func (a *app) Write(b []byte) (int, error) {
-	for line := range strings.SplitSeq(string(b[:len(b)-1]), "\n") {
+	a.logMu.Lock()
+	a.logBuf = append(a.logBuf, b...)
+	i := bytes.LastIndexByte(a.logBuf, '\n')
+	if i < 0 {
+		a.logMu.Unlock()
+		return len(b), nil
+	}
+	lines := string(a.logBuf[:i])
+	a.logBuf = append(a.logBuf[:0], a.logBuf[i+1:]...)
+	a.logMu.Unlock()
+
+	for line := range strings.SplitSeq(lines, "\n") {
 		// On older versions of Roblox, the channel used to be 'debugstr'.
 		// XXXX:warn:seh:OutputDebugStringA "2026-04-27T14:57:01.636Z ... [FLog::Foo] Message"
 		if a.boot != nil && len(line) >= 14 && line[10:13] == "seh" {
@@ -193,17 +225,29 @@ func (a *app) handleWineLog(line string) {
 	slog.Log(context.Background(), logging.LevelWine.Level(), line)
 }
 
+// updateWineTheme mirrors the GNOME desktop preferences (dark style,
+// accent color) into Wine, and ensures Wine renders through Wayland.
 func (a *app) updateWineTheme() {
 	// If the studio theme is "Default", the wine theme change will effect
 	// studio as well.
-
-	if !a.pfx.Running() {
+	if a.pfx == nil || !a.pfx.Running() {
 		slog.Debug("Not changing theme: Wine is not running")
+		return
 	}
+
 	root := wine.RegistryKey{Name: "HKEY_CURRENT_USER"}
 	v := root.Add(`Software\Microsoft\Windows\CurrentVersion`)
 	pz := v.Add(`Themes\Personalize`)
 	mgr := v.Add(`ThemeManager`)
+
+	// Wayland-only: never fall back to winex11 through Xwayland.
+	root.Add(`Software\Wine\Drivers`).SetValue("Graphics", "wayland")
+
+	// GNOME renders fonts with grayscale antialiasing by default.
+	desktop := root.Add(`Control Panel\Desktop`)
+	desktop.SetValue("FontSmoothing", "2")
+	desktop.SetValue("FontSmoothingType", uint32(1))
+	desktop.SetValue("FontSmoothingGamma", uint32(1400))
 
 	mgr.SetValue("ColorName", nil)
 	mgr.SetValue("DllName", nil)
@@ -216,17 +260,21 @@ func (a *app) updateWineTheme() {
 	// look will be gone in the light theme.
 	mgr.SetValue("LoadedBefore", "0")
 	mgr.SetValue("ThemeActive", "0")
-	if a.GetStyleManager().GetDark() {
-		root.Add(`Control Panel\Colors`).Values = darkThemeValues
-		pz.SetValue("AppsUseLightTheme", uint32(0))
-		pz.SetValue("SystemUsesLightTheme", uint32(0))
-	} else {
-		root.Add(`Control Panel\Colors`).Values = lightThemeValues
-		pz.SetValue("AppsUseLightTheme", uint32(1))
-		pz.SetValue("SystemUsesLightTheme", uint32(1))
-	}
 
-	slog.Debug("Changing Wine's theme", "dark", a.GetStyleManager().GetDark())
+	sm := a.GetStyleManager()
+	dark := sm.GetDark()
+	colors := lightThemeValues
+	light := uint32(1)
+	if dark {
+		colors = darkThemeValues
+		light = 0
+	}
+	colors = withAccent(colors, accentColor(sm))
+	root.Add(`Control Panel\Colors`).Values = colors
+	pz.SetValue("AppsUseLightTheme", light)
+	pz.SetValue("SystemUsesLightTheme", light)
+
+	slog.Debug("Changing Wine's theme", "dark", dark)
 	if err := a.pfx.RegistryImportKey(&root); err != nil {
 		slog.Error("Failed to change Wine's theme", "err", err)
 	}
@@ -235,9 +283,38 @@ func (a *app) updateWineTheme() {
 	// refresh its theme, run a small application to open a GUI for just a
 	// second. Yes this results in a flicker and requires the user to
 	// focus on Studio, but there's no other way to allow live updates :/
-	if a.boot.count > 0 {
+	if a.boot != nil && a.boot.count.Load() > 0 {
 		_ = a.pfx.Wine("start", "cmd", "/c", "exit").Run()
 	}
+}
+
+// accentColor returns the GNOME accent color as a Windows registry
+// color value, falling back to the Adwaita blue.
+func accentColor(sm *adw.StyleManager) string {
+	const fallback = "53 132 228" // #3584e4
+	if !sm.GetSystemSupportsAccentColors() {
+		return fallback
+	}
+	c := sm.GetAccentColorRgba()
+	if c == nil {
+		return fallback
+	}
+	defer c.Free()
+	return fmt.Sprintf("%d %d %d",
+		uint8(c.Red*255+0.5), uint8(c.Green*255+0.5), uint8(c.Blue*255+0.5))
+}
+
+// withAccent returns a copy of values with the selection and highlight
+// colors replaced by the given accent color.
+func withAccent(values []wine.RegistryValue, accent string) []wine.RegistryValue {
+	out := slices.Clone(values)
+	for i, v := range out {
+		switch v.Name {
+		case "ButtonAlternativeFace", "Hilight", "HotTrackingColor", "MenuHilight":
+			out[i].Data = accent
+		}
+	}
+	return out
 }
 
 var darkThemeValues = []wine.RegistryValue{

@@ -7,12 +7,13 @@
 	<summary>Run Roblox Studio on Linux</summary>
 	<description>
 		<p>Vinegar is an open-source, configurable, fast bootstrapper for running Roblox Studio on Linux.</p>
+		<p>This edition is made exclusively for GNOME 50 and newer on Wayland: Studio is rendered through Wine's native Wayland driver, and follows the GNOME dark style and accent color.</p>
 	</description>
 	<url type="homepage">https://vinegarhq.org</url>
 	<url type="help">https://vinegarhq.org/Vinegar/Troubleshooting.html</url>
-	<url type="contribute">https://github.com/vinegarhq/vinegar</url>
-	<url type="vcs-browser">https://github.com/vinegarhq/vinegar</url>
-	<url type="bugtracker">https://github.com/vinegarhq/vinegar/issues</url>
+	<url type="contribute">https://github.com/arthurffht/vinegar</url>
+	<url type="vcs-browser">https://github.com/arthurffht/vinegar</url>
+	<url type="bugtracker">https://github.com/arthurffht/vinegar/issues</url>
 	<developer id="vinegarhq.org">
 		<name>VinegarHQ</name>
 	</developer>
@@ -21,6 +22,9 @@
 		<control>pointing</control>
 		<control>keyboard</control>
 	</supports>
+	<requires>
+		<display_length compare="ge">360</display_length>
+	</requires>
 
 	<screenshots>
 		<screenshot type="default">
@@ -42,6 +46,23 @@
 	</screenshots>
 
 	<releases>
+		<release version="1.9.4.1" date="2026-10-23">
+			<description>
+				<p>GNOME edition</p>
+				<ul>
+					<li>Wayland-only: GTK and Wine both run natively on Wayland, without Xwayland</li>
+					<li>Wine follows the GNOME accent color and font rendering</li>
+					<li>Automatically select DXVK, DXVK (Legacy) or WineD3D based on the Vulkan support of the GPU</li>
+					<li>Ask for confirmation before deleting Wine data or uninstalling Studio</li>
+					<li>Interface ported to Blueprint and build system to Meson</li>
+					<li>Fixed crashes on startup failures and when parsing Studio logs</li>
+					<li>Fixed Wine log lines being split across reads</li>
+					<li>Fixed interrupted Wine downloads leaving a broken installation behind</li>
+					<li>Fixed the minimum memory check never triggering</li>
+					<li>Fixed data races in the Studio instance counter and download progress</li>
+				</ul>
+			</description>
+		</release>
 		<release version="1.9.4" date="2026-06-24">
 			<description>
 				<ul>

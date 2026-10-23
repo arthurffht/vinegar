@@ -1,26 +1,41 @@
 package gutil
 
 import (
-	_ "embed"
+	"errors"
+	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 
 	"codeberg.org/puregotk/puregotk/v4/gio"
 	"codeberg.org/puregotk/puregotk/v4/glib"
 )
 
-//go:embed vinegar.gresource
-var gResource []byte
+// ResourceName is the name of the compiled GResource bundle
+// installed in the package data directory.
+const ResourceName = "vinegar.gresource"
 
-func init() {
-	b := glib.NewBytes(
-		gResource,
-		uint(len(gResource)),
-	)
-	r, err := gio.NewResourceFromData(b)
-	if err != nil {
-		panic(err)
+// LoadResources registers the application's GResource bundle. The
+// VINEGAR_RESOURCE environment variable takes precedence, as set by
+// 'meson devenv', followed by the given installation directory.
+func LoadResources(dir string) error {
+	candidates := []string{filepath.Join(dir, ResourceName)}
+	if p := os.Getenv("VINEGAR_RESOURCE"); p != "" {
+		candidates = append([]string{p}, candidates...)
 	}
-	gio.ResourcesRegister(r)
+
+	var errs []error
+	for _, name := range candidates {
+		r, err := gio.ResourceLoad(name)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		gio.ResourcesRegister(r)
+		return nil
+	}
+
+	return fmt.Errorf("resources not found: %w", errors.Join(errs...))
 }
 
 func Resource(elems ...string) string {

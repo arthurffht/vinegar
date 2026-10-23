@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	codeberg.org/puregotk/purego v0.0.0-20260224095105-2513c838cb80
 	codeberg.org/puregotk/puregotk v0.0.0-20260512093256-2a5b38c3a1c6
 	github.com/altfoxie/drpc v0.0.0-20251029175103-30d5f68745fb
 	github.com/google/go-github/v80 v80.0.0
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	codeberg.org/puregotk/purego v0.0.0-20260224095105-2513c838cb80 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/otiai10/mint v1.6.3 // indirect

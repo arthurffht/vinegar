@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"codeberg.org/puregotk/puregotk/v4/adw"
 	"codeberg.org/puregotk/puregotk/v4/gio"
@@ -41,6 +42,11 @@ type app struct {
 
 	mgr  *manager // nullable
 	boot *bootstrapper
+
+	// Buffers partial lines written by Wine, as pipe reads
+	// are not guaranteed to end at a line boundary.
+	logMu  sync.Mutex
+	logBuf []byte
 }
 
 func newApp() *app {
@@ -122,14 +128,8 @@ func (a *app) startup(_ gio.Application) {
 		"display", sysinfo.Display)
 	slog.Info("DRM Devices",
 		"cards", sysinfo.Cards)
-
-	// ChromeOS allocates 4GB [citation needed] for Crostini.
-	if sysinfo.Memory < 4*1024*1024 && !a.cfg.Debug {
-		a.showError(errors.New(L(
-			"This system does not meet the minimum requirements to run Roblox Studio." +
-				"It is recommended to run Vinegar with sufficient memory and graphics.")))
-		return
-	}
+	slog.Info("Vulkan Devices",
+		"devices", sysinfo.VulkanDevices())
 
 	a.boot = a.newBootstrapper()
 
@@ -150,11 +150,30 @@ func (a *app) startup(_ gio.Application) {
 		a.showError(fmt.Errorf("config error: %w", err))
 		return
 	}
+
+	// ChromeOS allocates 4GB [citation needed] for Crostini, which the
+	// kernel reports as slightly less than 4GiB of total memory.
+	if sysinfo.Memory > 0 && sysinfo.Memory < 3584*1024*1024 && !a.cfg.Debug {
+		a.cfg = nil
+		a.showError(errors.New(L(
+			"This system does not meet the minimum requirements to run Roblox Studio. " +
+				"It is recommended to run Vinegar with sufficient memory and graphics.")))
+		return
+	}
+
 	a.applyConfig()
 
+	quit := gio.NewSimpleAction("quit", nil)
+	quitcb := func(_ gio.SimpleAction, _ uintptr) { a.Quit() }
+	quit.ConnectActivate(&quitcb)
+	a.AddAction(quit)
+
+	// Follow the GNOME style preferences: color scheme and accent color
+	// are both reflected in Wine's theme for Studio.
 	sm := a.GetStyleManager()
 	cb := a.updateWineTheme
 	sm.ConnectSignal("notify::dark", &cb)
+	sm.ConnectSignal("notify::accent-color", &cb)
 }
 
 func (a *app) commandLine(_ gio.Application, clPtr uintptr) int32 {
@@ -208,12 +227,17 @@ func (a *app) commandLine(_ gio.Application, clPtr uintptr) int32 {
 }
 
 func (a *app) shutdown(_ gio.Application) {
+	// Startup may have bailed out before configuration was loaded.
+	if a.boot == nil || a.pfx == nil {
+		return
+	}
+
 	if err := a.boot.backupSettings(); err != nil {
 		slog.Error("Failed to backup Studio settings", "err", err)
 	}
 
 	// TODO: Wait for studio processes or Wineserver to die
-	if a.boot.count > 1 {
+	if a.boot.count.Load() > 1 {
 		slog.Warn("Handing off Wineserver control!")
 	} else {
 		slog.Info("Goodbye!")

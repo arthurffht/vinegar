@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"codeberg.org/puregotk/puregotk/v4/adw"
 	"codeberg.org/puregotk/puregotk/v4/glib"
@@ -36,8 +37,9 @@ type bootstrapper struct {
 	dir string
 	bin *rbxbin.Deployment
 
-	// amount of Roblox processes that are open
-	count uint
+	// amount of Roblox processes that are open, modified by
+	// both the Wine log reader and the bootstrapper thread.
+	count atomic.Int32
 
 	rp *studiorpc.StudioRPC
 }
@@ -157,12 +159,12 @@ func (b *bootstrapper) handleRobloxLog(line string) {
 		}
 	case strings.Contains(line, "launching new studio instance"):
 		slog.Warn("New studio instance ran!")
-		b.count++
+		b.count.Add(1)
 		return
 	case strings.Contains(line, "About to exit the application"):
-		if b.count > 1 {
+		if b.count.Load() > 1 {
 			slog.Warn("Extra studio instance closed!")
-			b.count--
+			b.count.Add(-1)
 		}
 		return
 	}
@@ -170,15 +172,11 @@ func (b *bootstrapper) handleRobloxLog(line string) {
 	// time,runtime,code,code2[,level ] ...
 	{
 		entry := strings.SplitN(line, ",", 4)
-		if len(entry) < 3 {
+		if len(entry) < 4 {
 			slog.Log(context.Background(), slog.LevelInfo, line)
 			return
 		}
-		entry = entry[3:]
-		if len(entry) != 1 {
-			panic(entry)
-		}
-		line = entry[0]
+		line = entry[3]
 	}
 
 	i := strings.Index(line, " [")

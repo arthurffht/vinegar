@@ -1,0 +1,407 @@
+using Gtk 4.0;
+using Adw 1;
+translation-domain "vinegar";
+
+Adw.ApplicationWindow window {
+  default-height: 680;
+  default-width: 520;
+  width-request: 360;
+  height-request: 294;
+  title: "Vinegar";
+
+  ShortcutController {
+    scope: managed;
+
+    Shortcut {
+      trigger: "<Control>q";
+      action: "action(app.quit)";
+    }
+
+    Shortcut {
+      trigger: "<Control>w";
+      action: "action(window.close)";
+    }
+  }
+
+  Adw.NavigationView navigation {
+    Adw.NavigationPage {
+      child: Adw.ToastOverlay overlay {
+        child: Adw.ToolbarView {
+          content: main_page;
+
+          [top]
+          Adw.HeaderBar headerbar {
+            show-back-button: false;
+
+            [end]
+            MenuButton {
+              icon-name: "open-menu-symbolic";
+              menu-model: app_menu;
+              primary: true;
+              tooltip-text: _("Main Menu");
+            }
+          }
+
+          Adw.PreferencesPage main_page {
+            Adw.PreferencesGroup components_group {
+              header-suffix: MenuButton {
+                icon-name: "system-run-symbolic";
+                tooltip-text: _("Run Command in Wine");
+
+                popover: Popover {
+                  child: Entry cmd {
+                    activates-default: true;
+                    placeholder-text: _("Custom Command");
+                  };
+                };
+
+                styles [
+                  "flat",
+                ]
+              };
+
+              title: _("Components");
+
+              Adw.SwitchRow webpages_row {
+                subtitle: _("Used for certain UI elements and logging in");
+                title: _("Web Pages");
+              }
+
+              Adw.ActionRow wine_row {
+                title: _("Wine Installation");
+
+                MenuButton wine_update {
+                  icon-name: "folder-download-symbolic";
+                  tooltip-text: _("Download Wine Build");
+
+                  popover: Popover wine_updater {
+                    child: Box {
+                      spacing: 8;
+
+                      DropDown wine_tag {
+                        model: StringList wine_tags {
+                          strings [
+                            _("Latest"),
+                          ]
+                        };
+
+                        selected: 0;
+                      }
+
+                      Button wine_confirm {
+                        icon-name: "adw-entry-apply-symbolic";
+                        tooltip-text: _("Install");
+
+                        styles [
+                          "suggested-action",
+                        ]
+                      }
+                    };
+                  };
+
+                  valign: center;
+
+                  styles [
+                    "flat",
+                  ]
+                }
+
+                Button wine_revert {
+                  icon-name: "edit-undo-symbolic";
+                  tooltip-text: _("Toggle Default Wine Build");
+                  valign: center;
+
+                  styles [
+                    "flat",
+                  ]
+                }
+
+                Button wine_select {
+                  icon-name: "document-open-symbolic";
+                  tooltip-text: _("Select Wine Installation");
+                  valign: center;
+
+                  styles [
+                    "flat",
+                  ]
+                }
+              }
+
+              Adw.ActionRow {
+                action-name: "win.winecfg";
+                activatable: true;
+                title: _("Advanced Wine Settings");
+
+                [suffix]
+                Image {
+                  icon-name: "go-next-symbolic";
+                }
+              }
+            }
+
+            Adw.PreferencesGroup display_group {
+              title: _("Display");
+
+              Adw.ComboRow renderer_row {
+                model: StringList {
+                  strings [
+                    "WineD3D",
+                    _("WineD3D (Legacy)"),
+                    "DXVK",
+                    _("DXVK (Legacy)"),
+                    "Vulkan",
+                  ]
+                };
+
+                subtitle: _("Determines performance and compatibility");
+                title: _("Graphics Mode");
+              }
+
+              Adw.ExpanderRow desktop_row {
+                show-enable-switch: true;
+                subtitle: _("Create an isolated window for each instance");
+                title: _("Virtual Desktops");
+
+                Adw.EntryRow resolution_entry {
+                  title: _("Window resolution (eg. 1920x1080)");
+                }
+              }
+
+              Adw.ComboRow cards_row {
+                model: StringList cards {
+                  strings [
+                    _("System Default"),
+                  ]
+                };
+
+                selected: 0;
+                subtitle: _("Select a discrete or specific card for rendering");
+                title: _("Graphics Card");
+              }
+            }
+
+            Adw.PreferencesGroup behavior_group {
+              title: _("Behavior");
+
+              Adw.EntryRow launcher_row {
+                show-apply-button: true;
+                title: _("Launcher Command (ex. gamescope)");
+              }
+
+              Adw.SwitchRow discord_row {
+                subtitle: _("Display your development status on your Discord profile");
+                title: _("Share Activity on Discord");
+              }
+
+              Adw.SwitchRow gamemode_row {
+                subtitle: _("Apply system optimizations if available");
+                title: _("GameMode");
+              }
+
+              Adw.SwitchRow debug_row {
+                subtitle: _("Enable full Wine logging and log Roblox API requests");
+                title: _("Debug");
+              }
+            }
+
+            Adw.PreferencesGroup {
+              separate-rows: true;
+
+              Adw.ExpanderRow env_row {
+                title: _("Environment Variables");
+
+                [suffix]
+                MenuButton {
+                  icon-name: "list-add-symbolic";
+                  tooltip-text: _("Add Variable");
+
+                  popover: Popover env_popover {
+                    child: Entry env_entry {
+                      placeholder-text: "WINEDEBUG";
+                    };
+                  };
+
+                  valign: center;
+
+                  styles [
+                    "flat",
+                  ]
+                }
+              }
+
+              Adw.ExpanderRow fflags_row {
+                title: _("Fast Flags");
+
+                [suffix]
+                MenuButton {
+                  icon-name: "list-add-symbolic";
+                  tooltip-text: _("Add Fast Flag");
+
+                  popover: Popover fflag_popover {
+                    child: Box {
+                      spacing: 8;
+
+                      Entry fflag_name {
+                        placeholder-text: "DFIntTaskSchedulerTargetFps";
+                      }
+
+                      DropDown fflag_type {
+                        model: StringList {
+                          strings [
+                            "Number",
+                            "Boolean",
+                            "String",
+                          ]
+                        };
+
+                        tooltip-text: _("Value Type");
+                      }
+                    };
+                  };
+
+                  valign: center;
+
+                  styles [
+                    "flat",
+                  ]
+                }
+              }
+            }
+
+            Adw.PreferencesGroup deployment_group {
+              title: _("Deployment Overrides");
+
+              Adw.EntryRow version_row {
+                show-apply-button: true;
+                title: _("Forced Deployment Version");
+              }
+
+              Adw.EntryRow channel_row {
+                show-apply-button: true;
+                title: _("Authenticated/Public Update Channel");
+              }
+            }
+          }
+        };
+      };
+
+      tag: "manager";
+      title: "Vinegar";
+    }
+
+    Adw.NavigationPage {
+      child: Adw.ToolbarView {
+        content: Adw.StatusPage {
+          child: Box {
+            halign: baseline_center;
+            margin-end: 8;
+            margin-start: 8;
+            orientation: vertical;
+            spacing: 24;
+
+            ListBox {
+              selection-mode: none;
+
+              Adw.ActionRow {
+                icon-name: "help-about-symbolic";
+                subtitle: _(
+                  "Under the hood, Vinegar configures and manages Wine, using <a href='https://github.com/arthurffht/kombucha'>a patched, Wayland-only version</a> by default to enhance the Studio experience. However, Wine's instability may vary from system to system."
+                );
+                title: _("Components");
+              }
+
+              Adw.ActionRow {
+                icon-name: "help-faq-symbolic";
+                subtitle: _(
+                  "Vinegar's settings can be configured to fix multiple window or rendering issues, if any occur. See <a href='https://vinegarhq.org/Vinegar/Troubleshooting.html'>Common problems and their fixes</a> for further information."
+                );
+                title: _("Troubleshooting Wine");
+              }
+
+              Adw.ActionRow {
+                icon-name: "preferences-system-symbolic";
+                subtitle: _(
+                  "You may tweak Vinegar's settings or manage your Wine data from the manager page, which can be accessed by right clicking on Vinegar's icon on your desktop or searching for \"Manage\" in your application launcher."
+                );
+                title: _("Configuration");
+              }
+
+              styles [
+                "boxed-list",
+              ]
+            }
+
+            Button {
+              action-name: "navigation.pop";
+              halign: center;
+              label: _("Configure");
+
+              styles [
+                "pill",
+                "suggested-action",
+              ]
+            }
+          };
+
+          title: _("Welcome to Vinegar");
+        };
+
+        [top]
+        Adw.HeaderBar {
+          show-back-button: false;
+          show-title: false;
+        }
+      };
+
+      tag: "welcome";
+      title: _("Welcome to Vinegar");
+    }
+  }
+}
+
+menu app_menu {
+  item {
+    action: "win.open-data";
+    label: _("Open Files");
+  }
+
+  item {
+    action: "win.open-logs";
+    label: _("Open Logs");
+  }
+
+  item {
+    action: "win.clear-cache";
+    label: _("Clear Cache");
+  }
+
+  section {
+    item {
+      action: "win.prefix-kill";
+      icon: "process-stop-symbolic";
+      label: _("Stop Processes");
+    }
+
+    item {
+      action: "win.delete-studio";
+      label: _("Uninstall Studio");
+    }
+
+    item {
+      action: "win.delete-prefix";
+      label: _("Delete Wine Data");
+    }
+  }
+
+  section {
+    item {
+      action: "win.about";
+      label: _("_About Vinegar");
+    }
+
+    item {
+      action: "app.quit";
+      label: _("_Quit");
+    }
+  }
+}

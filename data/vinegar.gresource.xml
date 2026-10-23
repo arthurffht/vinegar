@@ -2,7 +2,7 @@
 <gresources>
   <gresource prefix="/org/vinegarhq/Vinegar/">
     <file alias="metainfo.xml" preprocess="xml-stripblanks">org.vinegarhq.Vinegar.metainfo.xml</file>
-    <file preprocess="xml-stripblanks">ui/bootstrapper.ui</file>
-    <file preprocess="xml-stripblanks">ui/manager.ui</file>
+    <file alias="ui/bootstrapper.ui" preprocess="xml-stripblanks">bootstrapper.ui</file>
+    <file alias="ui/manager.ui" preprocess="xml-stripblanks">manager.ui</file>
   </gresource>
 </gresources>

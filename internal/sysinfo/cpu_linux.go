@@ -11,7 +11,10 @@ import (
 func getCPUName() string {
 	column := regexp.MustCompile("\t+: ")
 
-	f, _ := os.Open("/proc/cpuinfo")
+	f, err := os.Open("/proc/cpuinfo")
+	if err != nil {
+		return ""
+	}
 	defer f.Close()
 
 	s := bufio.NewScanner(f)

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sort"
 	"sync/atomic"
@@ -72,11 +73,11 @@ func (b *bootstrapper) updateDeployment() error {
 	// Remove all other deployments
 	removeUniqueFiles(dirs.Versions, []string{b.bin.GUID})
 
+	stop()
+
 	if err := os.MkdirAll(dirs.Downloads, 0o755); err != nil {
 		return err
 	}
-
-	stop()
 
 	if err := b.installDeployment(); err != nil {
 		return err
@@ -120,7 +121,7 @@ func (b *bootstrapper) installDeployment() error {
 		return fmt.Errorf("fetch packages: %w", err)
 	}
 
-	sums := make([]string, len(pkgs))
+	sums := make([]string, 0, len(pkgs))
 	for _, pkg := range pkgs {
 		sums = append(sums, pkg.Checksum)
 	}
@@ -152,8 +153,11 @@ func (b *bootstrapper) installPackages(
 	pdirs rbxbin.PackageDirectories,
 ) error {
 	total := len(pkgs)
-	finished := int64(0)
+	finished := atomic.Int64{}
 	group := new(errgroup.Group)
+	// Bound concurrency to avoid exhausting file descriptors and
+	// saturating the connection with dozens of parallel downloads.
+	group.SetLimit(max(4, runtime.NumCPU()))
 
 	b.message(L("Installing Packages"), "count", len(pkgs), "dir", b.dir)
 	for _, pkg := range pkgs {
@@ -162,9 +166,9 @@ func (b *bootstrapper) installPackages(
 				return err
 			}
 
-			atomic.AddInt64(&finished, 1)
+			n := finished.Add(1)
 			gutil.IdleAdd(func() {
-				b.pbar.SetFraction(float64(finished) / float64(total))
+				b.pbar.SetFraction(float64(n) / float64(total))
 			})
 
 			return nil

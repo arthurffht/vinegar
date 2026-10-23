@@ -15,7 +15,7 @@ var (
 	CPU struct {
 		Name string
 	}
-	Memory  uint64 // in KB
+	Memory  uint64 // in bytes, 0 if unknown
 	Cards   []Card
 	Distro  string
 	Display string
@@ -57,7 +57,11 @@ func init() {
 	Display = fmt.Sprintf("%s (%s)",
 		os.Getenv("XDG_CURRENT_DESKTOP"), os.Getenv("XDG_SESSION_TYPE"))
 
-	f, _ := elf.Open("/proc/self/exe")
+	f, err := elf.Open("/proc/self/exe")
+	if err != nil {
+		return
+	}
+	defer f.Close()
 	for _, prog := range f.Progs {
 		if prog.Type != elf.PT_INTERP {
 			continue

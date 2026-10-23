@@ -24,7 +24,7 @@ import (
 //   - Install DXVK
 //   - Install WebView
 func (b *bootstrapper) setupExecute() error {
-	if b.count > 0 {
+	if b.count.Load() > 0 {
 		slog.Info("Skipping setup!", "ver", b.bin.GUID)
 		return nil
 	}
@@ -59,7 +59,6 @@ func (b *bootstrapper) setupExecute() error {
 
 	// Does nothing if WebView is disabled, preferred to download
 	// a large installer before Wineprefix initialization.
-	// before Wineprefix initialization.
 	if err := b.downloadWebView(webview); err != nil {
 		return fmt.Errorf("download webview: %w", err)
 	}

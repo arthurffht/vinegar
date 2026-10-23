@@ -1,0 +1,13 @@
+cmd/vinegar/app.go
+cmd/vinegar/app_wine.go
+cmd/vinegar/bootstrapper_roblosec.go
+cmd/vinegar/bootstrapper_run.go
+cmd/vinegar/bootstrapper_setup.go
+cmd/vinegar/bootstrapper_setup_pfx.go
+cmd/vinegar/bootstrapper_setup_rblx.go
+cmd/vinegar/manager.go
+cmd/vinegar/manager_actions.go
+internal/config/config.go
+internal/netutil/extract.go
+data/ui/bootstrapper.blp
+data/ui/manager.blp

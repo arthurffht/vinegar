@@ -1,0 +1,410 @@
+msgid ""
+msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-07 11:07-0300\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: cmd/vinegar/app.go:159
+msgid ""
+"This system does not meet the minimum requirements to run Roblox Studio. It "
+"is recommended to run Vinegar with sufficient memory and graphics."
+msgstr ""
+
+#: cmd/vinegar/app.go:286
+msgid "Something went wrong"
+msgstr "Etwas ist falsch gelaufen"
+
+#: cmd/vinegar/app.go:287
+msgid "Ok"
+msgstr "Ok"
+
+#: cmd/vinegar/app.go:287
+msgid "Open Log"
+msgstr "Log öffnen"
+
+#: cmd/vinegar/app_wine.go:31
+msgid "Setting up Wine"
+msgstr "Wine wird vorbereitet"
+
+#: cmd/vinegar/app_wine.go:60
+msgid "Updating Paths"
+msgstr "Pfade werden aktualisiert"
+
+#: cmd/vinegar/bootstrapper_roblosec.go:25
+msgid "Acquiring user authentication"
+msgstr "Nutzerauthentifizierung wird akquiriert"
+
+#: cmd/vinegar/bootstrapper_run.go:62
+msgid "Launching Studio"
+msgstr "Studio wird gestartet"
+
+#: cmd/vinegar/bootstrapper_setup.go:105
+msgid "Copying Overlay"
+msgstr "Overlay wird kopiert"
+
+#: cmd/vinegar/bootstrapper_setup.go:130
+msgid "Applying FFlags"
+msgstr "FFlags werden angewendet"
+
+#. If DXVK is installed in the wineprefix, uninstallation
+#. won't be necessary if it's disabled as it still requires
+#. DLL overrides to be present.
+#: cmd/vinegar/bootstrapper_setup_pfx.go:33
+msgid "Checking DXVK"
+msgstr "DXVK wird überprüft"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:51
+msgid "Downloading DXVK"
+msgstr "DXVK wird heruntergeladen"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:92
+msgid "Extracting DXVK"
+msgstr "DXVK wird extrahiert"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:184
+msgid "Fetching WebView"
+msgstr "WebView wird geholt"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:193
+msgid "Downloading WebView"
+msgstr "WebView wird heruntergeladen"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:203
+msgid "Checking WebView"
+msgstr "WebView wird überprüft"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:206
+msgid "Uninstalling WebView"
+msgstr "WebView wird gelöscht"
+
+#: cmd/vinegar/bootstrapper_setup_pfx.go:216
+msgid "Installing WebView"
+msgstr "WebView wird installiert"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:33
+msgid "Checking for updates"
+msgstr "Aktualität wird überprüft"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:67
+msgid "Up to date"
+msgstr "Auf dem aktuellen Stand"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:71
+msgid "Installing Studio"
+msgstr "Studio wird installiert"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:88
+msgid "Writing AppSettings"
+msgstr "AppSettings werden geschrieben"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:98
+msgid "Writing Registry"
+msgstr "Register wird geschrieben"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:112
+msgid "Finding Mirror"
+msgstr "Mirror wird gesucht"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:118
+msgid "Fetching Package List"
+msgstr "Paketliste wird geholt"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:139
+msgid "Fetching Installation Directives"
+msgstr "Installierungsrichtlinien werden geholt"
+
+#: cmd/vinegar/bootstrapper_setup_rblx.go:162
+msgid "Installing Packages"
+msgstr "Pakete werden installiert"
+
+#: cmd/vinegar/manager.go:57
+msgid "Delete Wine Data?"
+msgstr ""
+
+#: cmd/vinegar/manager.go:58
+msgid ""
+"Studio settings, logins and installed components inside the Wineprefix will "
+"be permanently lost."
+msgstr ""
+
+#: cmd/vinegar/manager.go:59
+msgid "Delete"
+msgstr ""
+
+#: cmd/vinegar/manager.go:62
+msgid "Uninstall Studio?"
+msgstr ""
+
+#: cmd/vinegar/manager.go:63
+msgid "Studio will be downloaded again the next time it is launched."
+msgstr ""
+
+#: cmd/vinegar/manager.go:64
+msgid "Uninstall"
+msgstr ""
+
+#: cmd/vinegar/manager.go:182 data/ui/bootstrapper.blp:63
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: cmd/vinegar/manager_actions.go:57
+msgid "Stopped all processes"
+msgstr "Alle Prozesse wurden angehalten"
+
+#: cmd/vinegar/manager_actions.go:67
+msgid "Deleted Wine data"
+msgstr "Wine-Daten wurden gelöscht"
+
+#: cmd/vinegar/manager_actions.go:76
+msgid "Uninstalled studio"
+msgstr "Studio wurde gelöscht"
+
+#: cmd/vinegar/manager_actions.go:99
+msgid "Cleared cache"
+msgstr "Cache wurde geleert"
+
+#: data/ui/bootstrapper.blp:31
+msgid "Initializing Vinegar"
+msgstr "Vinegar wird initialisiert"
+
+#: data/ui/manager.blp:41
+msgid "Main Menu"
+msgstr ""
+
+#: data/ui/manager.blp:49
+msgid "Run Command in Wine"
+msgstr ""
+
+#: data/ui/manager.blp:54
+msgid "Custom Command"
+msgstr "Benutzerdefinierter Befehl"
+
+#: data/ui/manager.blp:63 data/ui/manager.blp:310
+msgid "Components"
+msgstr "Komponenten"
+
+#: data/ui/manager.blp:66
+msgid "Used for certain UI elements and logging in"
+msgstr ""
+
+#: data/ui/manager.blp:67
+msgid "Web Pages"
+msgstr "Webseiten"
+
+#: data/ui/manager.blp:71
+msgid "Wine Installation"
+msgstr "Wineinstallation"
+
+#: data/ui/manager.blp:75
+msgid "Download Wine Build"
+msgstr ""
+
+#: data/ui/manager.blp:84
+msgid "Latest"
+msgstr ""
+
+#: data/ui/manager.blp:93
+msgid "Install"
+msgstr ""
+
+#: data/ui/manager.blp:111
+msgid "Toggle Default Wine Build"
+msgstr ""
+
+#: data/ui/manager.blp:121
+msgid "Select Wine Installation"
+msgstr ""
+
+#: data/ui/manager.blp:133
+msgid "Advanced Wine Settings"
+msgstr "Fortgeschrittene Wine-Einstellungen"
+
+#: data/ui/manager.blp:143
+msgid "Display"
+msgstr ""
+
+#: data/ui/manager.blp:149
+msgid "WineD3D (Legacy)"
+msgstr ""
+
+#: data/ui/manager.blp:151
+msgid "DXVK (Legacy)"
+msgstr ""
+
+#: data/ui/manager.blp:156
+msgid "Determines performance and compatibility"
+msgstr ""
+
+#: data/ui/manager.blp:157
+msgid "Graphics Mode"
+msgstr ""
+
+#: data/ui/manager.blp:162
+msgid "Create an isolated window for each instance"
+msgstr ""
+
+#: data/ui/manager.blp:163
+msgid "Virtual Desktops"
+msgstr "Virtuelle Desktops"
+
+#: data/ui/manager.blp:166
+msgid "Window resolution (eg. 1920x1080)"
+msgstr "Fensterauflösung (z.B. 1920x1080)"
+
+#: data/ui/manager.blp:173
+msgid "System Default"
+msgstr ""
+
+#: data/ui/manager.blp:178
+msgid "Select a discrete or specific card for rendering"
+msgstr ""
+
+#: data/ui/manager.blp:179
+msgid "Graphics Card"
+msgstr ""
+
+#: data/ui/manager.blp:184
+msgid "Behavior"
+msgstr "Verhalten"
+
+#: data/ui/manager.blp:188
+msgid "Launcher Command (ex. gamescope)"
+msgstr "Startbefehl (z.B gamescope)"
+
+#: data/ui/manager.blp:192
+msgid "Display your development status on your Discord profile"
+msgstr "Zeigt ihren Entwicklungsstatus auf ihrem Discordprofil an"
+
+#: data/ui/manager.blp:193
+msgid "Share Activity on Discord"
+msgstr "Aktivität auf Discord teilen"
+
+#: data/ui/manager.blp:197
+msgid "Apply system optimizations if available"
+msgstr ""
+
+#: data/ui/manager.blp:198
+msgid "GameMode"
+msgstr ""
+
+#: data/ui/manager.blp:202
+msgid "Enable full Wine logging and log Roblox API requests"
+msgstr ""
+
+#: data/ui/manager.blp:203
+msgid "Debug"
+msgstr "Debug"
+
+#: data/ui/manager.blp:211
+msgid "Environment Variables"
+msgstr ""
+
+#: data/ui/manager.blp:216
+msgid "Add Variable"
+msgstr ""
+
+#: data/ui/manager.blp:233
+msgid "Fast Flags"
+msgstr "Fast Flags"
+
+#: data/ui/manager.blp:238
+msgid "Add Fast Flag"
+msgstr ""
+
+#: data/ui/manager.blp:257
+msgid "Value Type"
+msgstr ""
+
+#: data/ui/manager.blp:272
+msgid "Deployment Overrides"
+msgstr "Verteilungsüberschreibungen"
+
+#: data/ui/manager.blp:276
+msgid "Forced Deployment Version"
+msgstr ""
+
+#: data/ui/manager.blp:281
+msgid "Authenticated/Public Update Channel"
+msgstr ""
+
+#: data/ui/manager.blp:308
+msgid ""
+"Under the hood, Vinegar configures and manages Wine, using <a href='https://"
+"github.com/arthurffht/kombucha'>a patched, Wayland-only version</a> by "
+"default to enhance the Studio experience. However, Wine's instability may "
+"vary from system to system."
+msgstr ""
+
+#: data/ui/manager.blp:316
+msgid ""
+"Vinegar's settings can be configured to fix multiple window or rendering "
+"issues, if any occur. See <a href='https://vinegarhq.org/Vinegar/"
+"Troubleshooting.html'>Common problems and their fixes</a> for further "
+"information."
+msgstr ""
+"Vinegar's Einstellungen können konfiguriert werden, um Probleme mit mehreren "
+"Fenstern oder dem Rendering zu beheben, falls welche auftreten.Siehe <a "
+"href='https://vinegarhq.org/Vinegar/Troubleshooting.html'>Einfache probleme "
+"und ihre Lösungen</a> für weitere Informationen"
+
+#: data/ui/manager.blp:318
+msgid "Troubleshooting Wine"
+msgstr "Problembehebung bei Wine"
+
+#: data/ui/manager.blp:324
+msgid ""
+"You may tweak Vinegar's settings or manage your Wine data from the manager "
+"page, which can be accessed by right clicking on Vinegar's icon on your "
+"desktop or searching for \"Manage\" in your application launcher."
+msgstr ""
+"Vinegar's Einstellungen und die Wine-Daten können von der Manager-Seite aus "
+"verwaltet werden, welches sie durch einen Rechtsklick auf das Vinegar-icon "
+"aufrufen können, oder indem sie in ihrem Anwendungs-starter \"Manage\" "
+"suchen."
+
+#: data/ui/manager.blp:326
+msgid "Configuration"
+msgstr "Konfiguration"
+
+#: data/ui/manager.blp:337
+msgid "Configure"
+msgstr "Konfigurieren"
+
+#: data/ui/manager.blp:346 data/ui/manager.blp:357
+msgid "Welcome to Vinegar"
+msgstr "Willkommen zu Vinegar"
+
+#: data/ui/manager.blp:365
+msgid "Open Files"
+msgstr "Dateien öffnen"
+
+#: data/ui/manager.blp:370
+msgid "Open Logs"
+msgstr "Logs öffnen"
+
+#: data/ui/manager.blp:375
+msgid "Clear Cache"
+msgstr "Cache leeren"
+
+#: data/ui/manager.blp:382
+msgid "Stop Processes"
+msgstr "Prozesse anhalten"
+
+#: data/ui/manager.blp:387
+msgid "Uninstall Studio"
+msgstr "Studio löschen"
+
+#: data/ui/manager.blp:392
+msgid "Delete Wine Data"
+msgstr ""
+
+#: data/ui/manager.blp:399
+msgid "_About Vinegar"
+msgstr ""
+
+#: data/ui/manager.blp:404
+msgid "_Quit"
+msgstr ""

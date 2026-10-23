@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -9,11 +10,15 @@ import (
 
 	"codeberg.org/puregotk/puregotk/v4/adw"
 	"codeberg.org/puregotk/puregotk/v4/gio"
+	"codeberg.org/puregotk/puregotk/v4/glib"
 	"codeberg.org/puregotk/puregotk/v4/gobject"
 	"codeberg.org/puregotk/puregotk/v4/gtk"
 	"github.com/google/go-github/v80/github"
+	"github.com/vinegarhq/vinegar/internal/config"
 	"github.com/vinegarhq/vinegar/internal/dirs"
 	"github.com/vinegarhq/vinegar/internal/gutil"
+
+	. "github.com/pojntfx/go-gettext/pkg/i18n"
 )
 
 type manager struct {
@@ -47,12 +52,20 @@ func (a *app) newManager() *manager {
 			gtk.ShowUri(&m.win.Window, "file://"+dirs.Logs, 0)
 		},
 
-		"prefix-kill":   m.killPrefix,
-		"delete-prefix": m.deletePrefixes,
-		"delete-studio": m.deleteDeployments,
-		"clear-cache":   m.clearCache,
-		"update":        m.updateWine,
-		"restore":       m.boot.restoreSettings,
+		"prefix-kill": m.killPrefix,
+		"delete-prefix": func() {
+			m.confirm(L("Delete Wine Data?"),
+				L("Studio settings, logins and installed components inside the Wineprefix will be permanently lost."),
+				L("Delete"), m.deletePrefixes)
+		},
+		"delete-studio": func() {
+			m.confirm(L("Uninstall Studio?"),
+				L("Studio will be downloaded again the next time it is launched."),
+				L("Uninstall"), m.deleteDeployments)
+		},
+		"clear-cache": m.clearCache,
+		"update":      m.updateWine,
+		"restore":     m.boot.restoreSettings,
 
 		"winecfg": func() {
 			cmd.SetText("winecfg")
@@ -96,21 +109,32 @@ func (a *app) newManager() *manager {
 			client := github.NewClient(nil)
 			ctx := context.Background()
 
-			releases, _, err := client.Repositories.ListReleases(
-				ctx, "vinegarhq", "kombucha", nil)
-			if err != nil {
-				return err
-			}
-
-			for _, release := range releases {
-				if *release.TagName == tag {
+			seen := map[string]bool{tag: true}
+			var errs []error
+			for _, repo := range config.KombuchaRepos {
+				releases, _, err := client.Repositories.ListReleases(
+					ctx, repo.Owner, repo.Name, nil)
+				if err != nil {
+					errs = append(errs, err)
 					continue
 				}
-				gutil.IdleAdd(func() {
-					tags.Append(*release.TagName)
-				})
+
+				for _, release := range releases {
+					name := release.GetTagName()
+					if seen[name] {
+						continue
+					}
+					seen[name] = true
+					gutil.IdleAdd(func() {
+						tags.Append(name)
+					})
+				}
 			}
 
+			// Only fail if no repository could be reached at all.
+			if len(errs) == len(config.KombuchaRepos) {
+				return errors.Join(errs...)
+			}
 			return nil
 		})
 	})
@@ -149,4 +173,24 @@ func (m *manager) showToast(s string) {
 		toast.SetPriority(adw.ToastPriorityHighValue)
 		overlay.AddToast(toast)
 	})
+}
+
+// confirm presents a destructive confirmation dialog, running fn in
+// a separate thread only once the user has accepted it.
+func (m *manager) confirm(heading, body, accept string, fn func() error) {
+	d := adw.NewAlertDialog(heading, body)
+	d.AddResponses("cancel", L("Cancel"), "accept", accept)
+	d.SetCloseResponse("cancel")
+	d.SetDefaultResponse("cancel")
+	d.SetResponseAppearance("accept", adw.ResponseDestructiveValue)
+
+	var ccb gio.AsyncReadyCallback
+	ccb = func(_ uintptr, resPtr uintptr, _ uintptr) {
+		defer glib.UnrefCallback(&ccb)
+		res := gio.SimpleAsyncResultNewFromInternalPtr(resPtr)
+		if d.ChooseFinish(res) == "accept" {
+			m.app.errThread(fn)
+		}
+	}
+	d.Choose(&m.win.Widget, nil, &ccb, 0)
 }

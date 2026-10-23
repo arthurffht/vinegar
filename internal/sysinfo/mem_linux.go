@@ -10,7 +10,10 @@ import (
 )
 
 func getTotalMemory() uint64 {
-	f, _ := os.Open("/proc/meminfo")
+	f, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return 0
+	}
 	defer f.Close()
 
 	s := bufio.NewScanner(f)
@@ -31,5 +34,5 @@ func getTotalMemory() uint64 {
 		return value * 1024
 	}
 
-	return 64
+	return 0
 }

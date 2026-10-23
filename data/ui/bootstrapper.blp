@@ -1,0 +1,73 @@
+using Gtk 4.0;
+using Adw 1;
+translation-domain "vinegar";
+
+Adw.Window window {
+  default-height: 320;
+  default-width: 512;
+  resizable: false;
+  title: "Vinegar";
+
+  content: WindowHandle {
+    child: Box {
+      margin-top: 24;
+      margin-bottom: 24;
+      margin-end: 24;
+      margin-start: 24;
+      orientation: vertical;
+      valign: center;
+
+      Image logo {
+        icon-name: "org.vinegarhq.Vinegar";
+        margin-bottom: 24;
+        pixel-size: 96;
+
+        accessibility {
+          label: "Vinegar";
+        }
+      }
+
+      Label status {
+        label: _("Initializing Vinegar");
+        margin-bottom: 24;
+        wrap: true;
+        justify: center;
+
+        styles [
+          "title-2",
+        ]
+      }
+
+      ProgressBar progress {
+        margin-end: 64;
+        margin-start: 64;
+
+        accessibility {
+          labelled-by: status;
+        }
+      }
+
+      Label info {
+        margin-top: 14;
+        ellipsize: middle;
+
+        styles [
+          "monospace",
+          "dimmed",
+        ]
+      }
+
+      Button {
+        action-name: "window.close";
+        halign: center;
+        label: _("Cancel");
+        margin-top: 10;
+
+        styles [
+          "destructive-action",
+          "pill",
+        ]
+      }
+    };
+  };
+}
