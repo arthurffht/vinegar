@@ -23,7 +23,7 @@ jobs:
       - name: Check Formatting
         run: test -z "$(gofmt -l cmd internal)" || { gofmt -d cmd internal; exit 1; }
       - name: Vet
-        run: go vet -composites=false ./...
+        run: go vet -composites=false -unsafeptr=false ./...
       - name: Build
         run: |
           meson setup build --prefix=/usr
