@@ -1,0 +1,51 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+      - name: Build Flatpak
+        uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+        with:
+          bundle: vinegar-${{ github.ref_name }}.flatpak
+          manifest-path: build-aux/flatpak/org.vinegarhq.Vinegar.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+
+  release:
+    needs: flatpak
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Download Flatpak Bundle
+        uses: actions/download-artifact@v5
+        with:
+          pattern: vinegar-*
+          merge-multiple: true
+      - name: Package Source With Vendored Modules
+        run: |
+          go mod vendor
+          RELEASE="vinegar-${{ github.ref_name }}"
+          git archive --prefix="$RELEASE/" -o "$RELEASE.tar" HEAD
+          tar --transform "s,^,$RELEASE/," -rf "$RELEASE.tar" vendor
+          xz -9 "$RELEASE.tar"
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Vinegar for GNOME ${{ github.ref_name }}" --generate-notes \
+            vinegar-*.flatpak "vinegar-${{ github.ref_name }}.tar.xz"

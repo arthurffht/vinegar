@@ -2,22 +2,49 @@ name: Build
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
-  pull-requests: read
 jobs:
-  build:
+  native:
+    name: Native (Fedora, GNOME 51)
     runs-on: ubuntu-latest
+    container: registry.fedoraproject.org/fedora:45
     steps:
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '>=1.22'
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libglib2.0-dev libvulkan-dev gettext
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-    - name: Build Vinegar
-      run: make
+      - name: Install Dependencies
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            git golang meson ninja-build gcc-c++ pkgconf-pkg-config \
+            gtk4-devel libadwaita-devel vulkan-loader-devel \
+            blueprint-compiler glib2-devel gettext \
+            desktop-file-utils appstream
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+      - name: Check Formatting
+        run: test -z "$(gofmt -l cmd internal)" || { gofmt -d cmd internal; exit 1; }
+      - name: Vet
+        run: go vet -composites=false ./...
+      - name: Build
+        run: |
+          meson setup build --prefix=/usr
+          meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs
+      - name: Lint Blueprints
+        run: blueprint-compiler format data/ui/*.blp
+
+  flatpak:
+    name: Flatpak (GNOME 51)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+      - name: Build Flatpak
+        uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+        with:
+          bundle: vinegar.flatpak
+          manifest-path: build-aux/flatpak/org.vinegarhq.Vinegar.yml
+          cache-key: flatpak-builder-${{ github.sha }}

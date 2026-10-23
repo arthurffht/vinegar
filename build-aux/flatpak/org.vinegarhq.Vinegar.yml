@@ -1,0 +1,64 @@
+app-id: org.vinegarhq.Vinegar
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
+command: vinegar
+
+finish-args:
+  - --share=network
+
+  # Wayland-only: GTK and Wine's winewayland driver both render natively
+  # through the compositor, so neither X11 nor Xwayland is exposed.
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+
+  # Controllers and input devices used by Studio
+  - --device=input
+
+  # Necessary for VMProtect to function.
+  - --allow=devel
+
+  # Discord Rich presence (other clients untested)
+  - --filesystem=xdg-run/app/com.discordapp.Discord:create
+
+  # Give access to Studio's screenshots and autosaves.
+  # Flatpak currently has no support for custom XDG directories
+  # with scoped paths (xdg-documents/Roblox).
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-pictures
+
+  - --env=PATH=/app/bin:/usr/bin:/usr/lib/extensions/vulkan/gamescope/bin
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/man
+
+modules:
+  - name: blueprint-compiler
+    buildsystem: meson
+    cleanup: ['*']
+    sources:
+      - type: git
+        url: https://gitlab.gnome.org/GNOME/blueprint-compiler.git
+        tag: v0.22.2
+
+  - name: vinegar
+    buildsystem: meson
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin
+      env:
+        GOFLAGS: -mod=vendor
+        GOTOOLCHAIN: local
+        GOCACHE: /run/build/vinegar/.gocache
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - build
+          - .flatpak-builder
+          - repo
+      - go-sources.json
