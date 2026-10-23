@@ -143,12 +143,5 @@
     "sha256": "bbe7d7542b75798de10ce3e99013c65e7d6d9346bb6a2258a1f501b3f1ea472d",
     "strip-components": 3,
     "dest": "vendor/gopkg.in/natefinch/npipe.v2"
-  },
-  {
-    "type": "archive",
-    "url": "https://proxy.golang.org/github.com/sewnie/drpc/@v/v0.0.0-20251027131846-60568f62ffb3.zip",
-    "sha256": "74fbdd621b2b3cf757a00257a07fadeea2c4b40a5dc348750b2949a829a15175",
-    "strip-components": 3,
-    "dest": "vendor/github.com/altfoxie/drpc"
   }
 ]

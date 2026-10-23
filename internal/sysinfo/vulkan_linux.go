@@ -5,6 +5,7 @@ package sysinfo
 import (
 	"fmt"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -143,12 +144,17 @@ func queryVulkan() ([]VulkanDevice, error) {
 	for _, h := range handles[:count] {
 		var p vkPhysicalDeviceProperties
 		getPhysicalDeviceProperies(h, &p)
-		devs = append(devs, VulkanDevice{
+		d := VulkanDevice{
 			Name:       strings.TrimRight(string(p.deviceName[:]), "\x00"),
 			VendorID:   fmt.Sprintf("%04x", p.vendorID),
 			ProductID:  fmt.Sprintf("%04x", p.deviceID),
 			APIVersion: p.apiVersion,
-		})
+		}
+		// The same device may be exposed by multiple ICDs, such as
+		// within Flatpak where host and runtime drivers both exist.
+		if !slices.Contains(devs, d) {
+			devs = append(devs, d)
+		}
 	}
 	return devs, nil
 }

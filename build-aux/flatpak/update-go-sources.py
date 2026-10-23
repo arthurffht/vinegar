@@ -53,7 +53,10 @@ def main():
         if not line.startswith("# "):
             continue
         fields = line[2:].split()
-        path, version = fields[0], fields[1] if len(fields) > 1 else None
+        # Replacement directives are listed again, without a version.
+        if len(fields) < 2 or fields[1] == "=>":
+            continue
+        path, version = fields[0], fields[1]
         src_path, src_version = path, version
         if "=>" in fields:
             i = fields.index("=>")
